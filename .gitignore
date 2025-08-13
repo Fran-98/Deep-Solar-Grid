@@ -1,6 +1,7 @@
 /datos
 /datos_irradiancia
 *.csv
+/saved_models
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
