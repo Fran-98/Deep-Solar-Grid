@@ -34,13 +34,13 @@ class Dataset():
             'Tension_FV_Promedio(V)',
             'Potencia_Entrada_FV_Total(kW)',
             'Eficiencia del inversor(%)',
-            'MO',
-            'ALLSKY_SFC_SW_DWN',
-            'T2M',
-            'WS10M',
-            'RH2M',
-            'hora_sin',
-            'hora_cos',
+            'MO', # Mes
+            # 'ALLSKY_SFC_SW_DWN', # Irradiancia
+            # 'T2M', # Temperatura a 2 m
+            # 'WS10M', # Velocidad del viento a 10m
+            # 'RH2M', # Humedad relativa a 2m
+            'hora_sin', # seno de la hora (no es necesario mencionar)
+            'hora_cos', # cos de la hora (no es necesario mencionar)
         ]
         self.n_features = len(self.features) # <-- Guardamos el número de features
 

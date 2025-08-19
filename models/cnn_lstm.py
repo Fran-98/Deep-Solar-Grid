@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from loss import zero_focused_loss
 from preprocess import Dataset
-from models_nn import CNN_LSTM_Model, LSTM_Seq2Seq
+from models_nn import CNN_LSTM_Model, LSTM_Seq2Seq, LSTMModel
 
 # --- 1. CONFIGURACIÓN ---
 # Configuración del dispositivo
@@ -22,9 +22,10 @@ print(f"Usando dispositivo: {device}")
 train_path = 'dataset_final_train.csv'
 test_path = 'dataset_final_test.csv'
 ruta_guardado = 'saved_models'
-ruta_modelo = os.path.join(ruta_guardado, 'seq2seq_lstm_model.pth')
-seq2seq = True
-ruta_grafico_loss = os.path.join(ruta_guardado, 'loss_curve.png')
+nombre_modelo = 'lstm_simple_no_met'
+ruta_modelo = os.path.join(ruta_guardado, f'{nombre_modelo}.pth')
+seq2seq = 'seq2seq' in nombre_modelo
+ruta_grafico_loss = os.path.join(ruta_guardado, f'{nombre_modelo}_loss_curve.png')
 
 # --- 2. PREPARACIÓN DE DATOS ---
 # Instanciamos la clase que procesa los datos
@@ -58,8 +59,9 @@ print(f"\nForma del tensor X_train: {X_train_tensor.shape}")
 print(f"Forma del tensor X_val:   {X_val_tensor.shape}")
 
 # --- 3. INICIALIZACIÓN DEL MODELO Y OPTIMIZADOR ---
-model = CNN_LSTM_Model(input_size=dataset.n_features, hidden_layer_size=128, output_size=1).to(device)
-model = LSTM_Seq2Seq(input_size=dataset.n_features, hidden_layer_size=256, output_sequence_len=10).to(device)
+model = LSTMModel(input_size=dataset.n_features, hidden_layer_size=256, output_size=1).to(device)
+# model = CNN_LSTM_Model(input_size=dataset.n_features, hidden_layer_size=256, output_size=1).to(device)
+# model = LSTM_Seq2Seq(input_size=dataset.n_features, hidden_layer_size=256, output_sequence_len=10).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 # Opcional pero recomendado: Un scheduler para ajustar la tasa de aprendizaje
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, factor=0.5)
@@ -68,10 +70,14 @@ print("\nEstructura del modelo:")
 print(model)
 
 # --- 4. BUCLE DE ENTRENAMIENTO CON VALIDACIÓN ---
-epochs = 6000
+epochs = 5000
 # NUEVO: Listas para guardar el historial de pérdidas
 train_losses = []
 val_losses = []
+
+# --- Variables para guardar el mejor modelo ---
+best_val_loss = float('inf') # Inicializamos la mejor pérdida de validación con un valor infinito
+best_model_state = None # Variable para guardar el estado del mejor modelo
 
 print("\nIniciando entrenamiento...")
 for i in range(epochs):
@@ -93,21 +99,35 @@ for i in range(epochs):
         val_loss = zero_focused_loss(val_pred, y_val_tensor)
         val_losses.append(val_loss.item())
 
+    # --- Lógica para guardar el mejor modelo ---
+    # Comprobamos si la pérdida de validación actual es mejor que la mejor hasta ahora
+    # if val_loss.item() < best_val_loss:
+    #     best_val_loss = val_loss.item()
+    #     best_model_state = model.state_dict() # Guardamos una copia del estado del modelo
+    #     print(f"Mejor modelo encontrado en la época {i+1} con una pérdida de validación de: {best_val_loss:.6f}")
+
     # Actualizamos el scheduler con la pérdida de validación
     scheduler.step(val_loss)
     
     if (i+1) % 50 == 0:
+        if val_loss.item() < best_val_loss:
+            best_val_loss = val_loss.item()
+            best_model_state = model.state_dict() # Guardamos una copia del estado del modelo
+            print(f"Mejor modelo encontrado en la época {i+1} con una pérdida de validación de: {best_val_loss:.6f}")
         print(f'Epoch {i+1}/{epochs}, Train Loss: {train_loss.item():.6f}, Validation Loss: {val_loss.item():.6f}')
 
 print("Entrenamiento finalizado.")
 
-# --- 5. GUARDADO DEL MODELO Y GRÁFICO DE PÉRDIDAS ---
+# --- 5. GUARDADO DEL MEJOR MODELO Y GRÁFICO DE PÉRDIDAS ---
 if not os.path.exists(ruta_guardado):
     os.makedirs(ruta_guardado)
 
-# Guardar el estado del modelo
-torch.save(model.state_dict(), ruta_modelo)
-print(f"\nModelo guardado en: {ruta_modelo}")
+# Guardamos el mejor modelo fuera del bucle
+if best_model_state is not None:
+    torch.save(best_model_state, ruta_modelo)
+    print(f"\nEl mejor modelo basado en validación se ha guardado en: {ruta_modelo}")
+else:
+    print("No se encontró un mejor modelo para guardar.")
 
 # --- NUEVO: Crear y guardar el gráfico de pérdidas ---
 plt.figure(figsize=(12, 6))
@@ -118,13 +138,18 @@ plt.xlabel('Épocas')
 plt.ylabel('Pérdida (Loss)')
 plt.legend()
 plt.grid(True)
-plt.savefig(ruta_grafico_loss) # Guardamos el gráfico como una imagen
+plt.savefig(ruta_grafico_loss)
 print(f"Gráfico de pérdidas guardado en: {ruta_grafico_loss}")
-plt.show() # Mostramos el gráfico
+plt.show()
 
 # --- 6. EVALUACIÓN FINAL SOBRE EL CONJUNTO DE TEST ---
-# (Esta sección es opcional, para ver una predicción de ejemplo al final del entrenamiento)
-model.eval()
-with torch.no_grad():
-    # ... (Tu código de evaluación y visualización del conjunto de test puede ir aquí si lo deseas) ...
-    pass
+# (Opcional) Cargamos el mejor modelo guardado para la evaluación
+if os.path.exists(ruta_modelo):
+    model.load_state_dict(torch.load(ruta_modelo))
+    model.eval()
+    with torch.no_grad():
+        # ... (Tu código de evaluación y visualización del conjunto de test puede ir aquí si lo deseas) ...
+        # Por ejemplo, puedes calcular la pérdida final en el conjunto de prueba
+        test_pred = model(X_test_tensor)
+        test_loss = zero_focused_loss(test_pred, y_test_tensor)
+        print(f"Pérdida final en el conjunto de prueba (con el mejor modelo): {test_loss.item():.6f}")

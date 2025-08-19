@@ -1,0 +1,23 @@
+--- Métricas de rendimiento globales lstm_simple_met Con meteorologicos---
+RMSE en el conjunto de prueba: 8.1814
+MAE en el conjunto de prueba: 4.6719
+
+--- Métricas de rendimiento globales cnn_lstm_met Con meteorologicos---
+RMSE en el conjunto de prueba: 7.8088
+MAE en el conjunto de prueba: 4.4628
+
+--- Métricas de rendimiento globales seq2seq_lstm_met Con meteorologicos---
+RMSE en el conjunto de prueba: 6.8447
+MAE en el conjunto de prueba: 3.6104
+
+--- Métricas de rendimiento globales lstm_simple_no_met Sin datos meteorologicos---
+RMSE en el conjunto de prueba: 8.2547
+MAE en el conjunto de prueba: 4.6813
+
+--- Métricas de rendimiento globales cnn_lstm_no_met Sin datos meteorologicos---
+RMSE en el conjunto de prueba: 8.3374
+MAE en el conjunto de prueba: 4.6002
+
+--- Métricas de rendimiento globales seq2seq_lstm_no_met Sin datos meteorologicos---
+RMSE en el conjunto de prueba: 7.4612
+MAE en el conjunto de prueba: 3.9858
