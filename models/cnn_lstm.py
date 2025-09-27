@@ -8,6 +8,8 @@ from loss import zero_focused_loss
 from preprocess import Dataset
 from models_nn import CNN_LSTM_Model, LSTM_Seq2Seq, LSTMModel
 
+import time
+
 # --- 1. CONFIGURACIÓN ---
 # Configuración del dispositivo
 if torch.cuda.is_available():
@@ -16,13 +18,14 @@ elif hasattr(torch.backends, 'xpu') and torch.xpu.is_available():
     device = torch.device("xpu")
 else:
     device = torch.device("cpu")
+
 print(f"Usando dispositivo: {device}")
 
 # Rutas y parámetros
 train_path = 'dataset_final_train.csv'
 test_path = 'dataset_final_test.csv'
 ruta_guardado = 'saved_models'
-nombre_modelo = 'lstm_simple_no_met'
+nombre_modelo = 'seq2seq_test_clementina'
 ruta_modelo = os.path.join(ruta_guardado, f'{nombre_modelo}.pth')
 seq2seq = 'seq2seq' in nombre_modelo
 ruta_grafico_loss = os.path.join(ruta_guardado, f'{nombre_modelo}_loss_curve.png')
@@ -59,9 +62,9 @@ print(f"\nForma del tensor X_train: {X_train_tensor.shape}")
 print(f"Forma del tensor X_val:   {X_val_tensor.shape}")
 
 # --- 3. INICIALIZACIÓN DEL MODELO Y OPTIMIZADOR ---
-model = LSTMModel(input_size=dataset.n_features, hidden_layer_size=256, output_size=1).to(device)
+# model = LSTMModel(input_size=dataset.n_features, hidden_layer_size=256, output_size=1).to(device)
 # model = CNN_LSTM_Model(input_size=dataset.n_features, hidden_layer_size=256, output_size=1).to(device)
-# model = LSTM_Seq2Seq(input_size=dataset.n_features, hidden_layer_size=256, output_sequence_len=10).to(device)
+model = LSTM_Seq2Seq(input_size=dataset.n_features, hidden_layer_size=1024, output_sequence_len=10).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 # Opcional pero recomendado: Un scheduler para ajustar la tasa de aprendizaje
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, factor=0.5)
@@ -70,7 +73,7 @@ print("\nEstructura del modelo:")
 print(model)
 
 # --- 4. BUCLE DE ENTRENAMIENTO CON VALIDACIÓN ---
-epochs = 5000
+epochs = 10000
 # NUEVO: Listas para guardar el historial de pérdidas
 train_losses = []
 val_losses = []
@@ -80,6 +83,7 @@ best_val_loss = float('inf') # Inicializamos la mejor pérdida de validación co
 best_model_state = None # Variable para guardar el estado del mejor modelo
 
 print("\nIniciando entrenamiento...")
+time_elapsed = time.time()
 for i in range(epochs):
     # --- Fase de Entrenamiento ---
     model.train()
@@ -117,6 +121,8 @@ for i in range(epochs):
         print(f'Epoch {i+1}/{epochs}, Train Loss: {train_loss.item():.6f}, Validation Loss: {val_loss.item():.6f}')
 
 print("Entrenamiento finalizado.")
+time_elapsed = time.time() - time_elapsed
+print(f'Tiempo de entrenamiento: {time_elapsed:.2f} segundos')
 
 # --- 5. GUARDADO DEL MEJOR MODELO Y GRÁFICO DE PÉRDIDAS ---
 if not os.path.exists(ruta_guardado):
@@ -129,7 +135,6 @@ if best_model_state is not None:
 else:
     print("No se encontró un mejor modelo para guardar.")
 
-# --- NUEVO: Crear y guardar el gráfico de pérdidas ---
 plt.figure(figsize=(12, 6))
 plt.plot(train_losses, label='Pérdida de Entrenamiento')
 plt.plot(val_losses, label='Pérdida de Validación')
@@ -140,7 +145,7 @@ plt.legend()
 plt.grid(True)
 plt.savefig(ruta_grafico_loss)
 print(f"Gráfico de pérdidas guardado en: {ruta_grafico_loss}")
-plt.show()
+# plt.show()
 
 # --- 6. EVALUACIÓN FINAL SOBRE EL CONJUNTO DE TEST ---
 # (Opcional) Cargamos el mejor modelo guardado para la evaluación
