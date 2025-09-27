@@ -26,8 +26,6 @@ class Dataset():
         df_test.drop('Energia_MPPT_Total(kWh)', axis=1, inplace=True)
 
         # --- 2. PREPARACIÓN DE DATOS PARA MODELO MULTIVARIADO ---
-        # <-- MEJORA: Seleccionamos todas las variables que usaremos como entrada (features).
-        # La variable a predecir ('Potencia activa(kW)') debe ir PRIMERO en la lista.
         self.features = [
             'Potencia activa(kW)',
             'Corriente_FV_Total(A)',
@@ -35,10 +33,10 @@ class Dataset():
             'Potencia_Entrada_FV_Total(kW)',
             'Eficiencia del inversor(%)',
             'MO', # Mes
-            # 'ALLSKY_SFC_SW_DWN', # Irradiancia
-            # 'T2M', # Temperatura a 2 m
-            # 'WS10M', # Velocidad del viento a 10m
-            # 'RH2M', # Humedad relativa a 2m
+            'ALLSKY_SFC_SW_DWN', # Irradiancia
+            'T2M', # Temperatura a 2 m
+            'WS10M', # Velocidad del viento a 10m
+            'RH2M', # Humedad relativa a 2m
             'hora_sin', # seno de la hora (no es necesario mencionar)
             'hora_cos', # cos de la hora (no es necesario mencionar)
         ]
@@ -58,7 +56,6 @@ class Dataset():
         
         self.n_pasos = n_pasos
 
-        # Creamos las ventanas usando la nueva función
         if not seq2seq:
             self.X_train, self.y_train = self.crear_ventanas_multivariado(train_scaled, n_pasos)
             self.X_test, self.y_test = self.crear_ventanas_multivariado(self.test_scaled, n_pasos)
@@ -80,14 +77,13 @@ class Dataset():
                 # La ventana de entrada (X) contiene TODAS las features
                 ventana_x = dataset[i : i + n_pasos_entrada]
                 X.append(ventana_x)
-                # La salida (y) es solo el valor de la PRIMERA columna (nuestra variable objetivo)
+                # La salida (y) es solo el valor de la PRIMERA columna
                 valor_y = dataset[i + n_pasos_entrada, 0]
                 y.append(valor_y)
             return np.array(X), np.array(y)
     
     def crear_ventanas_seq2seq(self, dataset, n_pasos_entrada, n_pasos_salida):
         X, y = [], []
-        # Aseguramos que haya suficientes datos para la última ventana completa
         for i in range(len(dataset) - n_pasos_entrada - n_pasos_salida + 1):
             ventana_x = dataset[i : i + n_pasos_entrada]
             X.append(ventana_x)

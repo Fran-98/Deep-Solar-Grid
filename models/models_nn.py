@@ -4,11 +4,8 @@ import torch.nn as nn
 class LSTMModel(nn.Module):
     def __init__(self, input_size, hidden_layer_size=128, output_size=1):
         super().__init__()
-        # 1. Añadimos bidirectional=True
-        self.lstm = nn.LSTM(input_size, hidden_layer_size, batch_first=True, bidirectional=True)
 
-        # 2. La capa de salida ahora debe aceptar el doble de features,
-        #    porque la salida de la LSTM bidireccional concatena ambas direcciones.
+        self.lstm = nn.LSTM(input_size, hidden_layer_size, batch_first=True, bidirectional=True)
         self.linear = nn.Linear(hidden_layer_size * 2, output_size)
 
     def forward(self, input_seq):
